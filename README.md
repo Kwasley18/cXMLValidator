@@ -1,4 +1,4 @@
-# Coupa cXML & Global E-Invoicing Validator
+# Coupa cXML & Global E-Invoicing Validator (Work in progress)
 
 A browser-based tool for procurement and AP integration teams. It does two things:
 
