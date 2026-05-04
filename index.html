@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kayden's Coupa cXML Validator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0c0e13;
+  --surface: #14171e;
+  --surface-2: #1a1e27;
+  --surface-3: #222731;
+  --border: #2a2f3a;
+  --border-light: #353b48;
+  --text: #e8eaf0;
+  --text-dim: #8b91a0;
+  --text-muted: #5a6070;
+  --accent: #4e8cff;
+  --accent-dim: #3a6fd4;
+  --pass: #34d399;
+  --pass-bg: rgba(52, 211, 153, 0.08);
+  --pass-border: rgba(52, 211, 153, 0.2);
+  --fail: #f87171;
+  --fail-bg: rgba(248, 113, 113, 0.08);
+  --fail-border: rgba(248, 113, 113, 0.2);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.08);
+  --warn-border: rgba(251, 191, 36, 0.2);
+  --info: #60a5fa;
+  --info-bg: rgba(96, 165, 250, 0.08);
+  --info-border: rgba(96, 165, 250, 0.2);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html { font-size: 15px; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── LAYOUT ── */
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 0;
+  padding-bottom: 1.5rem;
+  border-bottom: none;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+header h1 span {
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+header p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* ── TAB NAVIGATION ── */
+.tab-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 2rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+.tab-btn {
+  flex: 1;
+  max-width: 280px;
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tab-btn:hover {
+  color: var(--text-dim);
+  background: var(--surface-2);
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(78, 140, 255, 0.25);
+}
+
+.tab-btn .tab-icon { font-size: 1rem; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--surface);
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(78, 140, 255, 0.04);
+}
+
+.drop-zone-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.8rem;
+  opacity: 0.6;
+}
+
+.drop-zone-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.drop-zone-sub {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ── PASTE AREA ── */
+.paste-section {
+  margin-bottom: 1.5rem;
+}
+
+.paste-section label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.paste-area {
+  width: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.paste-area:focus {
+  border-color: var(--accent);
+}
+
+.paste-area::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── BUTTONS ── */
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover { background: var(--accent-dim); }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── RESULTS ── */
+.results { display: none; }
+.results.visible { display: block; }
+
+.results-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+.results-header.pass {
+  background: var(--pass-bg);
+  border: 1px solid var(--pass-border);
+  color: var(--pass);
+}
+
+.results-header.fail {
+  background: var(--fail-bg);
+  border: 1px solid var(--fail-border);
+  color: var(--fail);
+}
+
+.results-header .verdict-icon { font-size: 1.5rem; }
+
+.results-header .verdict-text {
+  font-size: 1.1rem;
+}
+
+.results-header .verdict-detail {
+  font-weight: 400;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-left: auto;
+}
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  text-align: center;
+}
+
+.stat-card .stat-num {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.stat-card .stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.15rem;
+}
+
+.stat-card.pass-card .stat-num { color: var(--pass); }
+.stat-card.fail-card .stat-num { color: var(--fail); }
+.stat-card.warn-card .stat-num { color: var(--warn); }
+.stat-card.info-card .stat-num { color: var(--info); }
+
+/* ── CHECK GROUPS ── */
+.check-group {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.check-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.2rem;
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.check-group-header:hover { background: var(--surface-2); }
+
+.check-group-header .group-icon { font-size: 1.1rem; }
+.check-group-header .group-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  flex: 1;
+}
+
+.check-group-header .group-badge {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+}
+
+.group-badge.all-pass { background: var(--pass-bg); color: var(--pass); border: 1px solid var(--pass-border); }
+.group-badge.has-fail { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail-border); }
+.group-badge.has-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+
+.check-group-header .chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  font-size: 0.8rem;
+}
+
+.check-group.open .chevron { transform: rotate(180deg); }
+
+.check-group-body {
+  display: none;
+  padding: 0.3rem 0;
+  background: var(--surface-2);
+}
+
+.check-group.open .check-group-body { display: block; }
+
+/* ── INDIVIDUAL CHECKS ── */
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(42, 47, 58, 0.5);
+}
+
+.check-item:last-child { border-bottom: none; }
+
+.check-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 0.1rem; }
+.check-icon.pass { color: var(--pass); }
+.check-icon.fail { color: var(--fail); }
+.check-icon.warn { color: var(--warn); }
+.check-icon.info { color: var(--info); }
+
+.check-msg { flex: 1; }
+.check-msg .check-label { color: var(--text); }
+.check-msg .check-detail {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+/* ── INVOICE META ── */
+.invoice-meta {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+
+.meta-item .meta-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-item .meta-value {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 0.1rem;
+}
+
+/* ── EXPORT BUTTON ── */
+.export-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* ═══════════════════════════════════════ */
+/* REGIONAL COMPLIANCE STYLES             */
+/* ═══════════════════════════════════════ */
+
+.rc-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.rc-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rc-control-group label {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rc-select {
+  padding: 0.65rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  min-width: 200px;
+  transition: border-color 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b91a0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  padding-right: 2.2rem;
+}
+
+.rc-select:focus { border-color: var(--accent); }
+
+.rc-select option {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Country indicator pill */
+.country-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--surface-3);
+  border: 1px solid var(--border-light);
+  color: var(--text-dim);
+}
+
+.country-pill .flag { font-size: 1rem; }
+
+/* ── TRANSLATION TABLE ── */
+.rc-translation-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  font-size: 0.84rem;
+}
+
+.rc-translation-table thead th {
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+
+.rc-translation-table tbody tr {
+  transition: background 0.12s;
+}
+
+.rc-translation-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.rc-translation-table tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(42, 47, 58, 0.4);
+  vertical-align: top;
+}
+
+.rc-translation-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rc-translation-table .col-local {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  max-width: 260px;
+  word-break: break-all;
+}
+
+.rc-translation-table .col-english {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.rc-translation-table .col-value {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  max-width: 300px;
+  word-break: break-all;
+}
+
+.rc-translation-table .col-status {
+  text-align: center;
+  width: 80px;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-badge.present { background: var(--pass-bg); color: var(--pass); border: 1px solid var(--pass-border); }
+.status-badge.missing { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail-border); }
+.status-badge.optional { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
+
+/* Section headers in table */
+.rc-translation-table .section-row td {
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── RC DETECTED FORMAT ── */
+.rc-detected {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+.rc-detected .det-icon { font-size: 1.3rem; }
+
+.rc-detected .det-text {
+  flex: 1;
+  font-size: 0.88rem;
+}
+
+.rc-detected .det-text strong {
+  color: var(--accent);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .app { padding: 1.2rem 1rem 3rem; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .invoice-meta { grid-template-columns: 1fr 1fr; }
+  .btn-row { flex-direction: column; }
+  header h1 { font-size: 1.4rem; }
+  .tab-nav { flex-direction: column; }
+  .tab-btn { max-width: none; }
+  .rc-controls { flex-direction: column; align-items: stretch; }
+  .rc-translation-table { font-size: 0.76rem; }
+  .rc-translation-table .col-local { max-width: 140px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Kayden's Coupa <span>cXML</span> Validator</h1>
+    <p>Standard invoice validation &middot; Regional compliance &middot; Field translation</p>
+  </header>
+
+  <!-- ═══ TAB NAVIGATION ═══ -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="cxml">
+      <span class="tab-icon">📄</span> cXML Validator
+    </button>
+    <button class="tab-btn" data-tab="regional">
+      <span class="tab-icon">🌍</span> Regional Compliance
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 1: cXML VALIDATOR (Phase 1)        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-cxml">
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".xml,.cxml,.txt">
+      <div class="drop-zone-icon">📄</div>
+      <div class="drop-zone-title">Drop a cXML file here or click to browse</div>
+      <div class="drop-zone-sub">.xml &middot; .cxml &middot; .txt</div>
+    </div>
+
+    <div class="paste-section">
+      <label>Or paste cXML directly</label>
+      <textarea class="paste-area" id="pasteArea" placeholder="<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#10;<!DOCTYPE cXML SYSTEM ...>&#10;<cXML ...>&#10;  ...&#10;</cXML>" spellcheck="false"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="validateBtn">Validate Invoice</button>
+      <button class="btn btn-secondary" id="clearBtn">Clear</button>
+      <button class="btn btn-secondary" id="loadSampleBtn">Load Sample</button>
+    </div>
+
+    <div class="results" id="results">
+      <div class="results-header" id="verdictBanner"></div>
+      <div class="invoice-meta" id="invoiceMeta"></div>
+      <div class="stats-bar" id="statsBar"></div>
+      <div id="checkGroups"></div>
+      <div class="export-row">
+        <button class="btn btn-secondary" id="exportBtn">Export Report (.txt)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 2: REGIONAL COMPLIANCE (Phase 2)   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-regional">
+
+    <div class="rc-controls">
+      <div class="rc-control-group">
+        <label>Country / Format</label>
+        <select class="rc-select" id="rcCountrySelect">
+          <option value="auto">Auto-detect</option>
+          <option value="poland">🇵🇱 Poland — KSeF FA(3)</option>
+          <option value="belgium">🇧🇪 Belgium — PEPPOL BIS 3.0</option>
+          <option value="mexico">🇲🇽 Mexico — CFDI 4.0</option>
+          <option value="romania">🇷🇴 Romania — CIUS-RO</option>
+          <option value="serbia">🇷🇸 Serbia — SEF UBL 2.1</option>
+          <option value="germany">🇩🇪 Germany — X-Rechnung</option>
+          <option value="norway">🇳🇴 Norway — EHF</option>
+          <option value="denmark">🇩🇰 Denmark — OIOUBL</option>
+          <option value="peppol">🌐 Global — PEPPOL BIS 3.0</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="drop-zone" id="rcDropZone">
+      <input type="file" id="rcFileInput" accept=".xml,.txt">
+      <div class="drop-zone-icon">🌐</div>
+      <div class="drop-zone-title">Drop a regional invoice XML here or click to browse</div>
+      <div class="drop-zone-sub">KSeF FA(3) &middot; PEPPOL UBL &middot; CFDI 4.0 &middot; CIUS-RO &middot; SEF &middot; X-Rechnung &middot; EHF &middot; OIOUBL</div>
+    </div>
+
+    <div class="paste-section">
+      <label>Or paste regional XML directly</label>
+      <textarea class="paste-area" id="rcPasteArea" placeholder="<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#10;<Invoice xmlns=&quot;urn:oasis:names:specification:ubl:schema:xsd:Invoice-2&quot;>&#10;  ...&#10;</Invoice>&#10;&#10;or&#10;&#10;<Faktura>&#10;  ...&#10;</Faktura>&#10;&#10;or&#10;&#10;<cfdi:Comprobante ...>&#10;  ...&#10;</cfdi:Comprobante>" spellcheck="false"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="rcValidateBtn">Analyze &amp; Validate</button>
+      <button class="btn btn-secondary" id="rcClearBtn">Clear</button>
+      <button class="btn btn-secondary" id="rcLoadSampleBtn">Load Sample</button>
+    </div>
+
+    <div class="results" id="rcResults">
+      <div class="rc-detected" id="rcDetected"></div>
+      <div class="results-header" id="rcVerdictBanner"></div>
+      <div class="invoice-meta" id="rcMeta"></div>
+      <div class="stats-bar" id="rcStatsBar"></div>
+
+      <!-- Translation table -->
+      <div id="rcTranslationSection"></div>
+
+      <!-- Compliance checks -->
+      <div id="rcCheckGroups"></div>
+
+      <div class="export-row">
+        <button class="btn btn-secondary" id="rcExportBtn">Export Report (.txt)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// PHASE 1: COUPA cXML INVOICE VALIDATOR
+// ═══════════════════════════════════════
+
+const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE cXML SYSTEM "http://xml.cxml.org/schemas/cXML/1.2.020/InvoiceDetail.dtd">
+<cXML version="1.0" payloadID="1240598937@SUBDOMAIN.coupahost.com" timestamp="2024-06-30T01:24:51-07:00">
+  <Header>
+    <From>
+      <Credential domain="DUNS">
+        <Identity>SupplierABC</Identity>
+      </Credential>
+    </From>
+    <To>
+      <Credential domain="DUNS">
+        <Identity>BuyerXYZ</Identity>
+      </Credential>
+    </To>
+    <Sender>
+      <Credential domain="DUNS">
+        <Identity>SupplierABC</Identity>
+        <SharedSecret>MySecretKey</SharedSecret>
+      </Credential>
+      <UserAgent>Coupa Validator Sample 1.0</UserAgent>
+    </Sender>
+  </Header>
+  <Request deploymentMode="production">
+    <InvoiceDetailRequest>
+      <InvoiceDetailRequestHeader invoiceID="INV-2024-001" purpose="standard" operation="new" invoiceDate="2024-06-30T11:45:51-07:00">
+        <InvoiceDetailHeaderIndicator/>
+        <InvoiceDetailLineIndicator isAccountingInLine="yes"/>
+        <InvoicePartner>
+          <Contact role="remitTo" addressID="RT-001">
+            <Name xml:lang="en">Supplier Corp</Name>
+          </Contact>
+        </InvoicePartner>
+        <InvoicePartner>
+          <Contact role="billTo">
+            <Name xml:lang="en">Buyer Inc</Name>
+            <PostalAddress name="default">
+              <Street>123 Main St</Street>
+              <City>San Francisco</City>
+              <State>CA</State>
+              <PostalCode>94105</PostalCode>
+              <Country isoCountryCode="US">United States</Country>
+            </PostalAddress>
+          </Contact>
+        </InvoicePartner>
+        <PaymentTerm payInNumberOfDays="30"/>
+      </InvoiceDetailRequestHeader>
+      <InvoiceDetailOrder>
+        <InvoiceDetailOrderInfo>
+          <OrderReference orderID="PO-5500">
+            <DocumentReference payloadID="PO-PAYLOAD-5500"/>
+          </OrderReference>
+        </InvoiceDetailOrderInfo>
+        <InvoiceDetailItem invoiceLineNumber="1" quantity="10">
+          <UnitOfMeasure>EA</UnitOfMeasure>
+          <UnitPrice><Money currency="USD">25.00</Money></UnitPrice>
+          <InvoiceDetailItemReference lineNumber="1">
+            <Description xml:lang="en">Office Chairs</Description>
+          </InvoiceDetailItemReference>
+          <SubtotalAmount><Money currency="USD">250.00</Money></SubtotalAmount>
+        </InvoiceDetailItem>
+        <InvoiceDetailItem invoiceLineNumber="2" quantity="5">
+          <UnitOfMeasure>EA</UnitOfMeasure>
+          <UnitPrice><Money currency="USD">40.00</Money></UnitPrice>
+          <InvoiceDetailItemReference lineNumber="2">
+            <Description xml:lang="en">Standing Desks</Description>
+          </InvoiceDetailItemReference>
+          <SubtotalAmount><Money currency="USD">200.00</Money></SubtotalAmount>
+        </InvoiceDetailItem>
+      </InvoiceDetailOrder>
+      <InvoiceDetailSummary>
+        <SubtotalAmount><Money currency="USD">450.00</Money></SubtotalAmount>
+        <Tax>
+          <Money currency="USD">36.00</Money>
+          <Description xml:lang="en">Sales Tax</Description>
+          <TaxDetail purpose="tax" category="Sales" percentageRate="8" taxPointDate="2024-06-30T11:45:51-07:00">
+            <TaxableAmount><Money currency="USD">450.00</Money></TaxableAmount>
+            <TaxAmount><Money currency="USD">36.00</Money></TaxAmount>
+            <TaxLocation xml:lang="en">CA</TaxLocation>
+          </TaxDetail>
+        </Tax>
+        <GrossAmount><Money currency="USD">486.00</Money></GrossAmount>
+        <NetAmount><Money currency="USD">486.00</Money></NetAmount>
+        <DueAmount><Money currency="USD">486.00</Money></DueAmount>
+      </InvoiceDetailSummary>
+    </InvoiceDetailRequest>
+  </Request>
+</cXML>`;
+
+// ── Utility Helpers ──
+function getText(el, tag) {
+  if (!el) return null;
+  const found = el.getElementsByTagName(tag)[0];
+  return found ? (found.textContent || '').trim() : null;
+}
+
+function getAttr(el, attr) {
+  return el ? (el.getAttribute(attr) || '').trim() : '';
+}
+
+function getMoney(el) {
+  if (!el) return { amount: null, currency: null };
+  const moneyEl = el.getElementsByTagName('Money')[0];
+  if (!moneyEl) return { amount: null, currency: null };
+  const raw = (moneyEl.textContent || '').trim();
+  return {
+    amount: raw === '' ? null : parseFloat(raw),
+    currency: getAttr(moneyEl, 'currency') || null
+  };
+}
+
+function check(status, label, detail) {
+  return { status, label, detail: detail || '' };
+}
+
+// ── MAIN cXML VALIDATION ──
+function validateCXML(xmlString) {
+  const results = { meta: {}, groups: [] };
+
+  // 1. XML PARSE
+  const parseChecks = [];
+  let doc;
+  try {
+    const parser = new DOMParser();
+    doc = parser.parseFromString(xmlString, 'application/xml');
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      parseChecks.push(check('fail', 'XML is not well-formed', parseError.textContent.substring(0, 200)));
+      results.groups.push({ title: 'XML Structure', icon: '🧱', checks: parseChecks });
+      return results;
+    }
+    parseChecks.push(check('pass', 'XML is well-formed'));
+  } catch (e) {
+    parseChecks.push(check('fail', 'XML parsing failed', e.message));
+    results.groups.push({ title: 'XML Structure', icon: '🧱', checks: parseChecks });
+    return results;
+  }
+
+  const hasDTD = /<!DOCTYPE\s+cXML\s+SYSTEM\s+/i.test(xmlString);
+  if (hasDTD) {
+    parseChecks.push(check('pass', 'DOCTYPE declaration present'));
+    const dtdMatch = xmlString.match(/<!DOCTYPE\s+cXML\s+SYSTEM\s+"([^"]+)"/i);
+    if (dtdMatch && dtdMatch[1].includes('InvoiceDetail.dtd')) {
+      parseChecks.push(check('pass', 'DTD references InvoiceDetail.dtd', dtdMatch[1]));
+    } else {
+      parseChecks.push(check('warn', 'DTD may not reference InvoiceDetail.dtd', dtdMatch ? dtdMatch[1] : 'Could not extract DTD URI'));
+    }
+  } else {
+    parseChecks.push(check('warn', 'No DOCTYPE declaration found', 'Coupa expects <!DOCTYPE cXML SYSTEM "...InvoiceDetail.dtd">'));
+  }
+
+  if (/^<\?xml\s+version/.test(xmlString.trim())) {
+    parseChecks.push(check('pass', 'XML declaration present'));
+    if (/encoding="UTF-8"/i.test(xmlString.substring(0, 100))) {
+      parseChecks.push(check('pass', 'Encoding is UTF-8'));
+    } else {
+      parseChecks.push(check('warn', 'Encoding may not be UTF-8'));
+    }
+  } else {
+    parseChecks.push(check('warn', 'No XML declaration found'));
+  }
+  results.groups.push({ title: 'XML Structure', icon: '🧱', checks: parseChecks });
+
+  // 2. CXML ROOT & PAYLOAD
+  const rootChecks = [];
+  const cxml = doc.getElementsByTagName('cXML')[0];
+  if (!cxml) {
+    rootChecks.push(check('fail', 'Missing <cXML> root element'));
+    results.groups.push({ title: 'cXML Root', icon: '📦', checks: rootChecks });
+    return results;
+  }
+  rootChecks.push(check('pass', '<cXML> root element found'));
+
+  const payloadID = getAttr(cxml, 'payloadID');
+  if (payloadID) {
+    rootChecks.push(check('pass', 'payloadID present', payloadID));
+    results.meta.payloadID = payloadID;
+    if (payloadID.includes('@')) {
+      rootChecks.push(check('pass', 'payloadID uses timestamp@domain format'));
+    } else {
+      rootChecks.push(check('info', 'payloadID does not use typical timestamp@domain format', 'Consider using format: timestamp@yourdomain.com'));
+    }
+  } else {
+    rootChecks.push(check('fail', 'payloadID is missing', 'Reusing or missing payloadID will cause a 406 Not Acceptable error'));
+  }
+
+  const timestamp = getAttr(cxml, 'timestamp');
+  if (timestamp) {
+    rootChecks.push(check('pass', 'timestamp present', timestamp));
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(timestamp)) {
+      rootChecks.push(check('pass', 'timestamp is ISO 8601 format'));
+    } else {
+      rootChecks.push(check('warn', 'timestamp may not be proper ISO 8601', 'Expected: YYYY-MM-DDTHH:MM:SS-HH:MM'));
+    }
+  } else {
+    rootChecks.push(check('fail', 'timestamp is missing'));
+  }
+  results.groups.push({ title: 'cXML Root & Payload', icon: '📦', checks: rootChecks });
+
+  // 3. HEADER / AUTH
+  const authChecks = [];
+  const header = doc.getElementsByTagName('Header')[0];
+  if (!header) {
+    authChecks.push(check('fail', 'Missing <Header> block'));
+    results.groups.push({ title: 'Header & Authentication', icon: '🔐', checks: authChecks });
+  } else {
+    authChecks.push(check('pass', '<Header> block present'));
+    const from = header.getElementsByTagName('From')[0];
+    if (from) {
+      const fromId = getText(from, 'Identity');
+      authChecks.push(check('pass', 'From/Identity present', fromId || '(empty)'));
+      results.meta.supplier = fromId;
+    } else { authChecks.push(check('fail', 'Missing <From> block')); }
+
+    const to = header.getElementsByTagName('To')[0];
+    if (to) {
+      const toId = getText(to, 'Identity');
+      authChecks.push(check('pass', 'To/Identity present', toId || '(empty)'));
+      results.meta.buyer = toId;
+    } else { authChecks.push(check('fail', 'Missing <To> block')); }
+
+    const sender = header.getElementsByTagName('Sender')[0];
+    if (sender) {
+      authChecks.push(check('pass', '<Sender> block present'));
+      const secret = getText(sender, 'SharedSecret');
+      if (secret) { authChecks.push(check('pass', 'SharedSecret is present', '(value hidden)')); }
+      else { authChecks.push(check('fail', 'SharedSecret is missing in <Sender>', 'This will result in a 403 Forbidden error')); }
+      const ua = getText(sender, 'UserAgent');
+      if (ua) { authChecks.push(check('pass', 'UserAgent specified', ua)); }
+      else { authChecks.push(check('info', 'No UserAgent specified', 'Optional but recommended')); }
+    } else { authChecks.push(check('fail', 'Missing <Sender> block', 'SharedSecret cannot be validated')); }
+
+    results.groups.push({ title: 'Header & Authentication', icon: '🔐', checks: authChecks });
+  }
+
+  // 4. INVOICE HEADER
+  const invHeaderChecks = [];
+  const invHeader = doc.getElementsByTagName('InvoiceDetailRequestHeader')[0] || doc.getElementsByTagName('InvoiceDetailHeader')[0];
+  if (!invHeader) {
+    invHeaderChecks.push(check('fail', 'Missing InvoiceDetailRequestHeader / InvoiceDetailHeader'));
+    results.groups.push({ title: 'Invoice Header', icon: '📋', checks: invHeaderChecks });
+  } else {
+    invHeaderChecks.push(check('pass', 'Invoice header element found'));
+    const invoiceID = getAttr(invHeader, 'invoiceID');
+    if (invoiceID) { invHeaderChecks.push(check('pass', 'invoiceID present', invoiceID)); results.meta.invoiceID = invoiceID; }
+    else { invHeaderChecks.push(check('fail', 'invoiceID attribute missing')); }
+
+    const purpose = getAttr(invHeader, 'purpose');
+    if (purpose) {
+      const validPurposes = ['standard', 'creditInvoice', 'creditMemo', 'lineLevelCreditMemo'];
+      if (validPurposes.includes(purpose)) { invHeaderChecks.push(check('pass', `purpose="${purpose}" is valid`)); }
+      else { invHeaderChecks.push(check('warn', `purpose="${purpose}" may not be recognized`, `Expected: ${validPurposes.join(', ')}`)); }
+      results.meta.purpose = purpose;
+    } else { invHeaderChecks.push(check('fail', 'purpose attribute missing', 'Must be "standard" or "creditInvoice"')); }
+
+    const operation = getAttr(invHeader, 'operation');
+    if (operation === 'new') { invHeaderChecks.push(check('pass', 'operation="new"')); }
+    else if (operation === 'delete') { invHeaderChecks.push(check('info', 'operation="delete" — this is a void/cancel request')); }
+    else if (operation) { invHeaderChecks.push(check('warn', `operation="${operation}"`, 'Typically "new" or "delete"')); }
+    else { invHeaderChecks.push(check('warn', 'operation attribute not specified')); }
+
+    const invoiceDate = getAttr(invHeader, 'invoiceDate');
+    if (invoiceDate) {
+      invHeaderChecks.push(check('pass', 'invoiceDate present', invoiceDate));
+      results.meta.invoiceDate = invoiceDate;
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(invoiceDate)) { invHeaderChecks.push(check('pass', 'invoiceDate is ISO 8601 format')); }
+      else { invHeaderChecks.push(check('fail', 'invoiceDate is not proper ISO 8601', 'Expected: YYYY-MM-DDTHH:MM:SS-HH:MM')); }
+    } else { invHeaderChecks.push(check('fail', 'invoiceDate attribute missing')); }
+
+    if (purpose === 'creditInvoice' || purpose === 'creditMemo' || purpose === 'lineLevelCreditMemo') {
+      const docRefs = invHeader.getElementsByTagName('DocumentReference');
+      if (docRefs.length > 0) {
+        const refPayload = getAttr(docRefs[0], 'payloadID');
+        const refInvoice = getAttr(docRefs[0], 'invoiceID');
+        if (refPayload || refInvoice) { invHeaderChecks.push(check('pass', 'Credit memo references original invoice', refPayload || refInvoice)); }
+        else { invHeaderChecks.push(check('fail', 'DocumentReference found but no payloadID or invoiceID attribute', 'Credit memos must reference the original invoice')); }
+      } else { invHeaderChecks.push(check('fail', 'Credit memo missing DocumentReference to original invoice')); }
+    }
+
+    const headerInd = invHeader.getElementsByTagName('InvoiceDetailHeaderIndicator');
+    const lineInd = invHeader.getElementsByTagName('InvoiceDetailLineIndicator');
+    if (headerInd.length > 0) invHeaderChecks.push(check('pass', 'InvoiceDetailHeaderIndicator present'));
+    else invHeaderChecks.push(check('warn', 'InvoiceDetailHeaderIndicator missing'));
+    if (lineInd.length > 0) invHeaderChecks.push(check('pass', 'InvoiceDetailLineIndicator present'));
+    else invHeaderChecks.push(check('warn', 'InvoiceDetailLineIndicator missing'));
+
+    const payTerms = invHeader.getElementsByTagName('PaymentTerm');
+    if (payTerms.length > 0) {
+      const days = getAttr(payTerms[0], 'payInNumberOfDays');
+      invHeaderChecks.push(check('pass', 'PaymentTerm specified', days ? `Net ${days} days` : ''));
+    } else { invHeaderChecks.push(check('info', 'No PaymentTerm specified', 'Optional but common')); }
+
+    results.groups.push({ title: 'Invoice Header', icon: '📋', checks: invHeaderChecks });
+  }
+
+  // 5. ORDER REFERENCE
+  const orderChecks = [];
+  const invOrder = doc.getElementsByTagName('InvoiceDetailOrder')[0];
+  const invOrderInfo = doc.getElementsByTagName('InvoiceDetailOrderInfo')[0];
+  if (invOrder) { orderChecks.push(check('pass', '<InvoiceDetailOrder> present')); }
+  else { orderChecks.push(check('fail', 'Missing <InvoiceDetailOrder>')); }
+
+  if (invOrderInfo) {
+    const orderRef = invOrderInfo.getElementsByTagName('OrderReference')[0];
+    const masterRef = invOrderInfo.getElementsByTagName('MasterAgreementReference')[0];
+    if (orderRef) {
+      const orderID = getAttr(orderRef, 'orderID');
+      orderChecks.push(check('pass', 'PO-backed invoice: OrderReference found', orderID ? `orderID="${orderID}"` : ''));
+      results.meta.type = 'PO-Backed'; results.meta.orderID = orderID;
+      const docRef = orderRef.getElementsByTagName('DocumentReference')[0];
+      if (docRef) { orderChecks.push(check('pass', 'OrderReference contains DocumentReference')); }
+    } else if (masterRef) {
+      orderChecks.push(check('pass', 'Contract-backed invoice: MasterAgreementReference found'));
+      results.meta.type = 'Contract-Backed';
+      const docRef = masterRef.getElementsByTagName('DocumentReference')[0];
+      if (docRef) {
+        const contractID = getAttr(docRef, 'payloadID');
+        orderChecks.push(check('pass', 'Contract reference present', contractID ? `Contract #${contractID}` : ''));
+        results.meta.contractID = contractID;
+      }
+    } else {
+      orderChecks.push(check('warn', 'No OrderReference or MasterAgreementReference', 'This may be a non-PO/unbacked invoice'));
+      results.meta.type = 'Unbacked';
+    }
+  } else { orderChecks.push(check('warn', 'Missing <InvoiceDetailOrderInfo>')); results.meta.type = 'Unknown'; }
+  results.groups.push({ title: 'Order Reference', icon: '🔗', checks: orderChecks });
+
+  // 6. LINE ITEMS
+  const lineChecks = [];
+  const lineItems = doc.getElementsByTagName('InvoiceDetailItem');
+  const lineCount = lineItems.length;
+  if (lineCount === 0) { lineChecks.push(check('fail', 'No <InvoiceDetailItem> elements found')); }
+  else { lineChecks.push(check('pass', `${lineCount} line item(s) found`)); }
+
+  results.meta.lineCount = lineCount;
+  let computedSubtotal = 0;
+  const currencies = new Set();
+  const lineNumbers = [];
+
+  for (let i = 0; i < lineCount; i++) {
+    const item = lineItems[i];
+    const lineNum = getAttr(item, 'invoiceLineNumber');
+    const qty = parseFloat(getAttr(item, 'quantity'));
+    const unitPriceMoney = getMoney(item.querySelector(':scope > UnitPrice') || item.getElementsByTagName('UnitPrice')[0]);
+    const subtotalMoney = getMoney(item.getElementsByTagName('SubtotalAmount')[0]);
+    const uom = getText(item, 'UnitOfMeasure');
+    const desc = getText(item.getElementsByTagName('InvoiceDetailItemReference')[0], 'Description');
+
+    if (lineNum) {
+      if (lineNumbers.includes(lineNum)) { lineChecks.push(check('fail', `Line ${lineNum}: Duplicate invoiceLineNumber`)); }
+      else { lineNumbers.push(lineNum); }
+    } else { lineChecks.push(check('fail', `Item ${i + 1}: Missing invoiceLineNumber attribute`)); }
+
+    const label = `Line ${lineNum || (i + 1)}` + (desc ? ` — ${desc}` : '');
+    if (isNaN(qty)) { lineChecks.push(check('fail', `${label}: Missing or invalid quantity`)); }
+    else if (qty <= 0 && results.meta.purpose === 'standard') { lineChecks.push(check('warn', `${label}: Quantity is ${qty} on a standard invoice`)); }
+    if (!uom) { lineChecks.push(check('warn', `${label}: Missing UnitOfMeasure`)); }
+    if (unitPriceMoney.amount === null) { lineChecks.push(check('warn', `${label}: UnitPrice is empty or missing`)); }
+    if (unitPriceMoney.currency) currencies.add(unitPriceMoney.currency);
+    if (subtotalMoney.amount === null) { lineChecks.push(check('fail', `${label}: SubtotalAmount is empty or missing`)); }
+    else { computedSubtotal += subtotalMoney.amount; if (subtotalMoney.currency) currencies.add(subtotalMoney.currency); }
+
+    if (unitPriceMoney.amount !== null && !isNaN(qty) && subtotalMoney.amount !== null) {
+      const expected = Math.round(unitPriceMoney.amount * qty * 100) / 100;
+      const actual = Math.round(subtotalMoney.amount * 100) / 100;
+      if (Math.abs(expected - actual) < 0.015) { lineChecks.push(check('pass', `${label}: Math correct (${qty} × ${unitPriceMoney.amount} = ${actual})`)); }
+      else { lineChecks.push(check('fail', `${label}: Math error — ${qty} × ${unitPriceMoney.amount} = ${expected}, but SubtotalAmount is ${actual}`)); }
+    }
+    if (!desc) { lineChecks.push(check('warn', `${label}: No Description in ItemReference`)); }
+  }
+
+  if (lineNumbers.length > 0) {
+    const sorted = lineNumbers.map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+    if (sorted.length > 0 && sorted[0] === 1) { lineChecks.push(check('pass', 'Line numbering starts at 1')); }
+    else if (sorted.length > 0) { lineChecks.push(check('warn', `Line numbering starts at ${sorted[0]} instead of 1`)); }
+  }
+  results.groups.push({ title: `Line Items (${lineCount})`, icon: '📝', checks: lineChecks });
+
+  // 7. SUMMARY & MATH
+  const summaryChecks = [];
+  const summary = doc.getElementsByTagName('InvoiceDetailSummary')[0];
+  if (!summary) {
+    summaryChecks.push(check('fail', 'Missing <InvoiceDetailSummary>'));
+    results.groups.push({ title: 'Summary & Math', icon: '🧮', checks: summaryChecks });
+  } else {
+    summaryChecks.push(check('pass', '<InvoiceDetailSummary> present'));
+    const summSubtotal = getMoney(summary.querySelector(':scope > SubtotalAmount') || summary.getElementsByTagName('SubtotalAmount')[0]);
+    const summTax = getMoney(summary.querySelector(':scope > Tax') || summary.getElementsByTagName('Tax')[0]);
+    const summGross = getMoney(summary.getElementsByTagName('GrossAmount')[0]);
+    const summNet = getMoney(summary.getElementsByTagName('NetAmount')[0]);
+    const summDue = getMoney(summary.getElementsByTagName('DueAmount')[0]);
+    const summShipping = getMoney(summary.getElementsByTagName('ShippingAmount')[0]);
+    const summHandling = getMoney(summary.getElementsByTagName('SpecialHandlingAmount')[0]);
+
+    if (summSubtotal.currency) currencies.add(summSubtotal.currency);
+    if (summSubtotal.amount !== null) {
+      summaryChecks.push(check('pass', `SubtotalAmount: ${summSubtotal.currency} ${summSubtotal.amount}`));
+      results.meta.subtotal = `${summSubtotal.currency || ''} ${summSubtotal.amount}`;
+    } else { summaryChecks.push(check('fail', 'SubtotalAmount is empty or missing in Summary')); }
+
+    if (summSubtotal.amount !== null && lineCount > 0) {
+      const roundedComputed = Math.round(computedSubtotal * 100) / 100;
+      const roundedStated = Math.round(summSubtotal.amount * 100) / 100;
+      if (Math.abs(roundedComputed - roundedStated) < 0.015) { summaryChecks.push(check('pass', `Subtotal matches sum of line items (${roundedComputed})`)); }
+      else { summaryChecks.push(check('fail', `Subtotal mismatch — Line items sum to ${roundedComputed}, but Summary says ${roundedStated}`)); }
+    }
+
+    if (summTax.amount !== null) { summaryChecks.push(check('pass', `Tax total: ${summTax.currency || ''} ${summTax.amount}`)); results.meta.tax = `${summTax.currency || ''} ${summTax.amount}`; }
+    else { summaryChecks.push(check('info', 'Tax amount is empty or zero in Summary')); }
+
+    const taxDetails = summary.getElementsByTagName('TaxDetail');
+    if (taxDetails.length > 0) {
+      summaryChecks.push(check('pass', `${taxDetails.length} TaxDetail element(s) in Summary`));
+      for (let t = 0; t < taxDetails.length; t++) {
+        const td = taxDetails[t];
+        const tdRate = getAttr(td, 'percentageRate');
+        const tdTaxable = getMoney(td.getElementsByTagName('TaxableAmount')[0]);
+        const tdTaxAmt = getMoney(td.getElementsByTagName('TaxAmount')[0]);
+        if (!getAttr(td, 'purpose')) summaryChecks.push(check('warn', `TaxDetail ${t + 1}: Missing purpose attribute`));
+        if (!getAttr(td, 'category')) summaryChecks.push(check('warn', `TaxDetail ${t + 1}: Missing category attribute`));
+        if (!tdRate) summaryChecks.push(check('info', `TaxDetail ${t + 1}: No percentageRate`));
+        if (tdTaxable.amount !== null && tdRate && tdTaxAmt.amount !== null) {
+          const expectedTax = Math.round(tdTaxable.amount * parseFloat(tdRate) / 100 * 100) / 100;
+          const actualTax = Math.round(tdTaxAmt.amount * 100) / 100;
+          if (Math.abs(expectedTax - actualTax) < 0.015) { summaryChecks.push(check('pass', `TaxDetail ${t + 1}: Tax math correct (${tdTaxable.amount} × ${tdRate}% = ${actualTax})`)); }
+          else { summaryChecks.push(check('warn', `TaxDetail ${t + 1}: Tax math — ${tdTaxable.amount} × ${tdRate}% = ${expectedTax}, stated ${actualTax}`, 'May be a rounding variance')); }
+        }
+        const tdDate = getAttr(td, 'taxPointDate');
+        if (tdDate) {
+          if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(tdDate)) { summaryChecks.push(check('pass', `TaxDetail ${t + 1}: taxPointDate format OK`)); }
+          else { summaryChecks.push(check('fail', `TaxDetail ${t + 1}: taxPointDate format invalid`, tdDate)); }
+        }
+      }
+    } else { summaryChecks.push(check('info', 'No TaxDetail elements in Summary')); }
+
+    if (summGross.amount !== null) {
+      summaryChecks.push(check('pass', `GrossAmount: ${summGross.currency || ''} ${summGross.amount}`));
+      results.meta.gross = `${summGross.currency || ''} ${summGross.amount}`;
+      if (summSubtotal.amount !== null) {
+        const expectedGross = (summSubtotal.amount || 0) + (summTax.amount || 0) + (summShipping.amount || 0) + (summHandling.amount || 0);
+        const roundedExpGross = Math.round(expectedGross * 100) / 100;
+        const roundedActGross = Math.round(summGross.amount * 100) / 100;
+        if (Math.abs(roundedExpGross - roundedActGross) < 0.015) { summaryChecks.push(check('pass', `GrossAmount math verified (Subtotal + Tax + Shipping + Handling = ${roundedActGross})`)); }
+        else { summaryChecks.push(check('warn', `GrossAmount may not equal Subtotal + Tax + Shipping + Handling (expected ${roundedExpGross}, got ${roundedActGross})`)); }
+      }
+    } else { summaryChecks.push(check('info', 'GrossAmount not specified')); }
+
+    if (summNet.amount !== null) { summaryChecks.push(check('pass', `NetAmount: ${summNet.currency || ''} ${summNet.amount}`)); }
+    else { summaryChecks.push(check('info', 'NetAmount is empty or not specified')); }
+    if (summDue.amount !== null) { summaryChecks.push(check('pass', `DueAmount: ${summDue.currency || ''} ${summDue.amount}`)); }
+    else { summaryChecks.push(check('info', 'DueAmount not specified')); }
+    if (summShipping.amount !== null) { summaryChecks.push(check('pass', `ShippingAmount: ${summShipping.currency || ''} ${summShipping.amount}`)); }
+    if (summHandling.amount !== null) { summaryChecks.push(check('pass', `SpecialHandlingAmount: ${summHandling.currency || ''} ${summHandling.amount}`)); }
+    results.groups.push({ title: 'Summary & Math', icon: '🧮', checks: summaryChecks });
+  }
+
+  // 8. CURRENCY CONSISTENCY
+  const currencyChecks = [];
+  const currencyList = [...currencies].filter(c => c && c !== 'currency_code');
+  if (currencyList.length === 0) { currencyChecks.push(check('warn', 'No currency codes detected')); }
+  else if (currencyList.length === 1) { currencyChecks.push(check('pass', `Consistent currency used: ${currencyList[0]}`)); results.meta.currency = currencyList[0]; }
+  else { currencyChecks.push(check('warn', `Multiple currencies found: ${currencyList.join(', ')}`, 'Ensure this is intentional — mixed currencies may cause processing errors')); results.meta.currency = currencyList.join(', '); }
+  results.groups.push({ title: 'Currency', icon: '💱', checks: currencyChecks });
+
+  // 9. PARTNERS / ADDRESSES
+  const partnerChecks = [];
+  const partners = doc.getElementsByTagName('InvoicePartner');
+  if (partners.length > 0) {
+    partnerChecks.push(check('pass', `${partners.length} InvoicePartner block(s) found`));
+    let hasRemitTo = false, hasBillTo = false;
+    for (let p = 0; p < partners.length; p++) {
+      const contact = partners[p].getElementsByTagName('Contact')[0];
+      if (contact) {
+        const role = getAttr(contact, 'role');
+        if (role === 'remitTo') hasRemitTo = true;
+        if (role === 'billTo') hasBillTo = true;
+        partnerChecks.push(check('pass', `Partner: role="${role}"`));
+      }
+    }
+    if (!hasRemitTo) partnerChecks.push(check('info', 'No remitTo partner specified'));
+    if (!hasBillTo) partnerChecks.push(check('info', 'No billTo partner specified'));
+  } else { partnerChecks.push(check('info', 'No InvoicePartner blocks found', 'Optional for some invoice types')); }
+  results.groups.push({ title: 'Partners & Addresses', icon: '🏢', checks: partnerChecks });
+
+  // 10. EXTRINSICS / CUSTOM FIELDS
+  const extChecks = [];
+  const extrinsics = doc.getElementsByTagName('Extrinsic');
+  if (extrinsics.length > 0) {
+    extChecks.push(check('pass', `${extrinsics.length} Extrinsic element(s) found`));
+    for (let e = 0; e < extrinsics.length; e++) {
+      const name = getAttr(extrinsics[e], 'name');
+      if (name === 'CustomFields') {
+        const idRef = extrinsics[e].getElementsByTagName('IdReference')[0];
+        if (idRef) {
+          const identifier = getAttr(idRef, 'identifier');
+          const domain = getAttr(idRef, 'domain');
+          if (identifier) { extChecks.push(check('pass', `Custom field: ${identifier}`, domain ? `domain="${domain}"` : '')); }
+          else { extChecks.push(check('warn', 'CustomFields IdReference missing identifier', 'The identifier must match the API name in Coupa (case-sensitive)')); }
+        }
+      } else if (name) { extChecks.push(check('info', `Extrinsic: name="${name}"`)); }
+    }
+  } else { extChecks.push(check('info', 'No Extrinsic elements found')); }
+  results.groups.push({ title: 'Extrinsics & Custom Fields', icon: '🏷️', checks: extChecks });
+
+  return results;
+}
+
+
+// ═══════════════════════════════════════
+// UI RENDERING (Phase 1)
+// ═══════════════════════════════════════
+
+function renderResults(data) {
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.classList.add('visible');
+  let passes = 0, fails = 0, warns = 0, infos = 0;
+  data.groups.forEach(g => g.checks.forEach(c => { if (c.status === 'pass') passes++; else if (c.status === 'fail') fails++; else if (c.status === 'warn') warns++; else infos++; }));
+
+  const banner = document.getElementById('verdictBanner');
+  const isPass = fails === 0;
+  banner.className = `results-header ${isPass ? 'pass' : 'fail'}`;
+  banner.innerHTML = `<span class="verdict-icon">${isPass ? '✅' : '❌'}</span><span class="verdict-text">${isPass ? 'Invoice Passed All Checks' : 'Validation Issues Found'}</span><span class="verdict-detail">${passes + fails + warns + infos} checks completed</span>`;
+
+  const metaDiv = document.getElementById('invoiceMeta');
+  const m = data.meta;
+  const metaFields = [['Invoice ID', m.invoiceID],['Purpose', m.purpose],['Type', m.type],['Date', m.invoiceDate],['Supplier', m.supplier],['Buyer', m.buyer],['Currency', m.currency],['Lines', m.lineCount],['Order/Contract', m.orderID || m.contractID || '—'],['Subtotal', m.subtotal],['Tax', m.tax],['Gross', m.gross]].filter(f => f[1] !== undefined && f[1] !== null);
+  metaDiv.innerHTML = metaFields.map(([label, value]) => `<div class="meta-item"><div class="meta-label">${label}</div><div class="meta-value">${value || '—'}</div></div>`).join('');
+
+  document.getElementById('statsBar').innerHTML = `<div class="stat-card pass-card"><div class="stat-num">${passes}</div><div class="stat-label">Passed</div></div><div class="stat-card fail-card"><div class="stat-num">${fails}</div><div class="stat-label">Failed</div></div><div class="stat-card warn-card"><div class="stat-num">${warns}</div><div class="stat-label">Warnings</div></div><div class="stat-card info-card"><div class="stat-num">${infos}</div><div class="stat-label">Info</div></div>`;
+
+  const groupsDiv = document.getElementById('checkGroups');
+  groupsDiv.innerHTML = '';
+  data.groups.forEach((group) => {
+    const groupFails = group.checks.filter(c => c.status === 'fail').length;
+    const groupWarns = group.checks.filter(c => c.status === 'warn').length;
+    const badgeClass = groupFails > 0 ? 'has-fail' : groupWarns > 0 ? 'has-warn' : 'all-pass';
+    const badgeText = groupFails > 0 ? `${groupFails} fail` : groupWarns > 0 ? `${groupWarns} warn` : 'all pass';
+    const isOpen = groupFails > 0 || groupWarns > 0;
+    const groupEl = document.createElement('div');
+    groupEl.className = `check-group${isOpen ? ' open' : ''}`;
+    groupEl.innerHTML = `<div class="check-group-header" onclick="this.parentElement.classList.toggle('open')"><span class="group-icon">${group.icon}</span><span class="group-title">${group.title}</span><span class="group-badge ${badgeClass}">${badgeText}</span><span class="chevron">▼</span></div><div class="check-group-body">${group.checks.map(c => { const icons = { pass: '✓', fail: '✗', warn: '⚠', info: 'ℹ' }; return `<div class="check-item"><span class="check-icon ${c.status}">${icons[c.status]}</span><div class="check-msg"><div class="check-label">${c.label}</div>${c.detail ? `<div class="check-detail">${c.detail}</div>` : ''}</div></div>`; }).join('')}</div>`;
+    groupsDiv.appendChild(groupEl);
+  });
+  resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function generateReport(data) {
+  let report = '═══════════════════════════════════════\n  COUPA cXML INVOICE VALIDATION REPORT\n';
+  report += `  Generated: ${new Date().toISOString()}\n═══════════════════════════════════════\n\n`;
+  const m = data.meta;
+  report += `Invoice ID:    ${m.invoiceID || '—'}\nPurpose:       ${m.purpose || '—'}\nType:          ${m.type || '—'}\nDate:          ${m.invoiceDate || '—'}\nSupplier:      ${m.supplier || '—'}\nBuyer:         ${m.buyer || '—'}\nCurrency:      ${m.currency || '—'}\nLine Items:    ${m.lineCount || 0}\n\n`;
+  let passes = 0, fails = 0, warns = 0, infos = 0;
+  data.groups.forEach(g => g.checks.forEach(c => { if (c.status === 'pass') passes++; else if (c.status === 'fail') fails++; else if (c.status === 'warn') warns++; else infos++; }));
+  report += `RESULTS: ${passes} passed | ${fails} failed | ${warns} warnings | ${infos} info\nVERDICT: ${fails === 0 ? 'PASS ✓' : 'FAIL ✗'}\n\n`;
+  data.groups.forEach(group => {
+    report += `── ${group.title} ${'─'.repeat(Math.max(0, 40 - group.title.length))}──\n`;
+    group.checks.forEach(c => { const icon = { pass: '[PASS]', fail: '[FAIL]', warn: '[WARN]', info: '[INFO]' }[c.status]; report += `  ${icon} ${c.label}`; if (c.detail) report += `\n         ${c.detail}`; report += '\n'; });
+    report += '\n';
+  });
+  return report;
+}
+
+
+// ═══════════════════════════════════════
+// PHASE 2: REGIONAL COMPLIANCE ENGINE
+// ═══════════════════════════════════════
+
+// ── COUNTRY SPEC DEFINITIONS ──
+const COUNTRY_SPECS = {
+
+// ── POLAND FA(3) ──
+poland: {
+  name: 'Poland', flag: '🇵🇱', format: 'KSeF FA(3)', rootTag: 'Faktura',
+  detect: (xml, str) => str.includes('<Faktura') || str.includes('KodFormularza') || str.includes('FA (3)'),
+  ns: null,
+  fields: [
+    { section: 'Header & Identity' },
+    { xpath: 'Naglowek/KodFormularza', local: 'KodFormularza', english: 'Form Code', required: true },
+    { xpath: 'Naglowek/WariantFormularza', local: 'WariantFormularza', english: 'Form Variant', required: true },
+    { xpath: 'Naglowek/DataWytworzeniaFa', local: 'DataWytworzeniaFa', english: 'XML Creation Time', required: false },
+    { xpath: 'Podmiot1/DaneIdentyfikacyjne/NIP', local: 'NIP (Podmiot1)', english: 'Supplier Tax ID (NIP)', required: true },
+    { xpath: 'Podmiot1/DaneIdentyfikacyjne/PelnaNazwa', local: 'PelnaNazwa (Podmiot1)', english: 'Supplier Full Name', required: true },
+    { xpath: 'Podmiot1/Adres/KodKraju', local: 'KodKraju (Podmiot1)', english: 'Supplier Country', required: true },
+    { xpath: 'Podmiot1/Adres/Miejscowosc', local: 'Miejscowosc (Podmiot1)', english: 'Supplier City', required: true },
+    { xpath: 'Podmiot2/DaneIdentyfikacyjne/NIP', local: 'NIP (Podmiot2)', english: 'Buyer Tax ID (NIP)', required: true },
+    { xpath: 'Podmiot2/DaneIdentyfikacyjne/PelnaNazwa', local: 'PelnaNazwa (Podmiot2)', english: 'Buyer Legal Name', required: true },
+    { xpath: 'Podmiot2/Adres/Miejscowosc', local: 'Miejscowosc (Podmiot2)', english: 'Buyer City', required: true },
+    { section: 'Invoice Header Financials' },
+    { xpath: 'Fa/P_1', local: 'P_1', english: 'Invoice Date', required: true },
+    { xpath: 'Fa/P_2', local: 'P_2', english: 'Invoice Number', required: true },
+    { xpath: 'Fa/P_6', local: 'P_6', english: 'Sale/Supply Date', required: true },
+    { xpath: 'Fa/KodWaluty', local: 'KodWaluty', english: 'Currency', required: true },
+    { xpath: 'Fa/P_13_1', local: 'P_13_1', english: 'Net Base (23% VAT)', required: false },
+    { xpath: 'Fa/P_14_1', local: 'P_14_1', english: 'VAT Amount (23%)', required: false },
+    { xpath: 'Fa/P_13_2', local: 'P_13_2', english: 'Net Base (8% VAT)', required: false },
+    { xpath: 'Fa/P_14_2', local: 'P_14_2', english: 'VAT Amount (8%)', required: false },
+    { xpath: 'Fa/P_13_3', local: 'P_13_3', english: 'Net Base (5% VAT)', required: false },
+    { xpath: 'Fa/P_14_3', local: 'P_14_3', english: 'VAT Amount (5%)', required: false },
+    { xpath: 'Fa/P_15', local: 'P_15', english: 'Total Gross Amount', required: true },
+    { xpath: 'Fa/P_16', local: 'P_16', english: 'Cash Accounting', required: false },
+    { xpath: 'Fa/P_22', local: 'P_22', english: 'Split Payment', required: false },
+    { xpath: 'Fa/NrKSeF', local: 'NrKSeF', english: 'KSeF Clearance ID', required: false },
+  ],
+  lineFields: [
+    { xpath: 'NrWierszaFa', local: 'NrWierszaFa', english: 'Line Number' },
+    { xpath: 'P_7', local: 'P_7', english: 'Description' },
+    { xpath: 'P_8A', local: 'P_8A', english: 'Quantity' },
+    { xpath: 'P_8B', local: 'P_8B', english: 'Unit of Measure' },
+    { xpath: 'P_9A', local: 'P_9A', english: 'Net Unit Price' },
+    { xpath: 'P_11', local: 'P_11', english: 'Line Net Amount' },
+    { xpath: 'P_12', local: 'P_12', english: 'VAT Rate (%)' },
+  ],
+  linesParent: 'Fa',
+  lineTag: 'FaWiersz',
+  validate: (doc, fields) => {
+    const checks = [];
+    // NIP checksum
+    const nipVal = findVal(doc, 'Podmiot1/DaneIdentyfikacyjne/NIP');
+    if (nipVal) {
+      const nip = nipVal.replace(/[^0-9]/g, '');
+      if (nip.length === 10) {
+        const weights = [6,5,7,2,3,4,5,6,7];
+        let sum = 0;
+        for (let i = 0; i < 9; i++) sum += parseInt(nip[i]) * weights[i];
+        if (sum % 11 === parseInt(nip[9])) { checks.push(check('pass', 'NIP checksum valid')); }
+        else { checks.push(check('fail', 'NIP checksum invalid', `Expected digit: ${sum % 11}, got: ${nip[9]}`)); }
+      } else { checks.push(check('fail', 'Supplier NIP must be exactly 10 digits', `Found: ${nip.length} digits`)); }
+    }
+    // FA(3) version check
+    const variant = findVal(doc, 'Naglowek/WariantFormularza');
+    if (variant && variant !== '3') { checks.push(check('fail', 'Form variant is not 3 — FA(2) is deprecated', `Found: ${variant}`)); }
+    else if (variant === '3') { checks.push(check('pass', 'FA(3) format confirmed')); }
+    // Date logic
+    const p1 = findVal(doc, 'Fa/P_1');
+    const p6 = findVal(doc, 'Fa/P_6');
+    if (p1 && p6) {
+      if (new Date(p6) <= new Date(p1)) { checks.push(check('pass', 'Sale date is on or before issue date')); }
+      else { checks.push(check('warn', 'Sale date is after issue date', `P_6=${p6}, P_1=${p1}`)); }
+    }
+    // Currency check
+    const cur = findVal(doc, 'Fa/KodWaluty');
+    if (cur && cur !== 'PLN') {
+      const exRate = findVal(doc, 'Fa/KursWaluty');
+      if (!exRate) { checks.push(check('warn', 'Foreign currency but no KursWaluty (exchange rate) found')); }
+      else { checks.push(check('pass', `Exchange rate present for ${cur}: ${exRate}`)); }
+    }
+    return checks;
+  }
+},
+
+// ── BELGIUM PEPPOL BIS 3.0 ──
+belgium: {
+  name: 'Belgium', flag: '🇧🇪', format: 'PEPPOL BIS 3.0', rootTag: 'Invoice',
+  detect: (xml, str) => {
+    return (str.includes('urn:cen.eu:en16931:2017') && (str.includes('BE0') || str.includes('BE1') || str.includes('0208')));
+  },
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Header Information' },
+    { xpath: 'cbc:ID', local: 'cbc:ID', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'cbc:IssueDate', english: 'Issue Date', required: true },
+    { xpath: 'cbc:InvoiceTypeCode', local: 'cbc:InvoiceTypeCode', english: 'Document Type', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'cbc:DocumentCurrencyCode', english: 'Currency', required: true },
+    { xpath: 'cbc:BuyerReference', local: 'cbc:BuyerReference', english: 'Buyer Reference', required: false },
+    { xpath: 'cbc:DueDate', local: 'cbc:DueDate', english: 'Due Date', required: false },
+    { section: 'Party Identifiers' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'Supplier PartyName', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'Supplier CompanyID', english: 'Supplier VAT Number', required: true },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyIdentification/cbc:ID', local: 'Supplier PartyID', english: 'Supplier Enterprise No.', required: false },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyName/cbc:Name', local: 'Customer PartyName', english: 'Customer Name', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'Customer CompanyID', english: 'Customer VAT Number', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount', local: 'LineExtensionAmount', english: 'Net Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxExclusiveAmount', local: 'TaxExclusiveAmount', english: 'Tax Exclusive Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', local: 'TaxInclusiveAmount', english: 'Gross Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'PayableAmount', english: 'Payable Amount', required: true },
+    { xpath: 'cac:PaymentMeans/cbc:PaymentID', local: 'PaymentID', english: 'Structured Communication (VCS)', required: false },
+  ],
+  lineFields: [
+    { xpath: 'cbc:ID', local: 'cbc:ID', english: 'Line No.' },
+    { xpath: 'cbc:InvoicedQuantity', local: 'cbc:InvoicedQuantity', english: 'Quantity' },
+    { xpath: 'cac:Item/cbc:Name', local: 'Item Name', english: 'Description' },
+    { xpath: 'cac:Price/cbc:PriceAmount', local: 'PriceAmount', english: 'Unit Price' },
+    { xpath: 'cbc:LineExtensionAmount', local: 'LineExtensionAmount', english: 'Line Total' },
+  ],
+  linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: (doc, fields) => {
+    const checks = [];
+    const vatNum = findValNS(doc, 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID');
+    if (vatNum && vatNum.startsWith('BE')) { checks.push(check('pass', `Belgian VAT number detected: ${vatNum}`)); }
+    else if (vatNum) { checks.push(check('info', `VAT number prefix is not BE: ${vatNum}`)); }
+    // VCS modulo check
+    const paymentID = findValNS(doc, 'cac:PaymentMeans/cbc:PaymentID');
+    if (paymentID) {
+      const cleaned = paymentID.replace(/[^0-9]/g, '');
+      if (cleaned.length === 12) {
+        const base = parseInt(cleaned.substring(0, 10));
+        const chk = parseInt(cleaned.substring(10, 12));
+        const expected = base % 97 || 97;
+        if (expected === chk) { checks.push(check('pass', 'Structured Communication (VCS) modulo 97 checksum valid')); }
+        else { checks.push(check('warn', `VCS checksum may be invalid (expected ${expected}, got ${chk})`)); }
+      }
+    }
+    return checks;
+  }
+},
+
+// ── MEXICO CFDI 4.0 ──
+mexico: {
+  name: 'Mexico', flag: '🇲🇽', format: 'CFDI 4.0', rootTag: 'cfdi:Comprobante',
+  detect: (xml, str) => str.includes('cfdi:Comprobante') || str.includes('sat.gob.mx') || str.includes('TimbreFiscalDigital'),
+  ns: 'http://www.sat.gob.mx/cfd/4',
+  fields: [
+    { section: 'Comprobante (Header)' },
+    { xpath: '@Version', local: 'Versión', english: 'Schema Version', required: true, isAttr: true, attrName: 'Version' },
+    { xpath: '@Serie', local: 'Serie', english: 'Series', required: false, isAttr: true, attrName: 'Serie' },
+    { xpath: '@Folio', local: 'Folio', english: 'Invoice Number', required: false, isAttr: true, attrName: 'Folio' },
+    { xpath: '@Fecha', local: 'Fecha de Emisión', english: 'Issuance Date', required: true, isAttr: true, attrName: 'Fecha' },
+    { xpath: '@Sello', local: 'Sello Digital', english: 'Digital Seal', required: true, isAttr: true, attrName: 'Sello' },
+    { xpath: '@FormaPago', local: 'Forma de Pago', english: 'Payment Form', required: false, isAttr: true, attrName: 'FormaPago' },
+    { xpath: '@MetodoPago', local: 'Método de Pago', english: 'Payment Method', required: false, isAttr: true, attrName: 'MetodoPago' },
+    { xpath: '@Moneda', local: 'Moneda', english: 'Currency', required: true, isAttr: true, attrName: 'Moneda' },
+    { xpath: '@TipoDeComprobante', local: 'Tipo de Comprobante', english: 'Document Type', required: true, isAttr: true, attrName: 'TipoDeComprobante' },
+    { xpath: '@LugarExpedicion', local: 'Lugar de Expedición', english: 'Issuance Zip Code', required: true, isAttr: true, attrName: 'LugarExpedicion' },
+    { xpath: '@Exportacion', local: 'Exportación', english: 'Export Indicator', required: false, isAttr: true, attrName: 'Exportacion' },
+    { xpath: '@SubTotal', local: 'SubTotal', english: 'Subtotal', required: true, isAttr: true, attrName: 'SubTotal' },
+    { xpath: '@Total', local: 'Total', english: 'Total Amount', required: true, isAttr: true, attrName: 'Total' },
+    { section: 'Emisor (Sender)' },
+    { xpath: 'cfdi:Emisor/@Rfc', local: 'RFC Emisor', english: 'Sender Tax ID (RFC)', required: true, isAttr: true, parentTag: 'cfdi:Emisor', attrName: 'Rfc' },
+    { xpath: 'cfdi:Emisor/@Nombre', local: 'Nombre Emisor', english: 'Sender Name', required: true, isAttr: true, parentTag: 'cfdi:Emisor', attrName: 'Nombre' },
+    { xpath: 'cfdi:Emisor/@RegimenFiscal', local: 'Régimen Fiscal', english: 'Tax Regime', required: true, isAttr: true, parentTag: 'cfdi:Emisor', attrName: 'RegimenFiscal' },
+    { section: 'Receptor (Receiver)' },
+    { xpath: 'cfdi:Receptor/@Rfc', local: 'RFC Receptor', english: 'Receiver Tax ID (RFC)', required: true, isAttr: true, parentTag: 'cfdi:Receptor', attrName: 'Rfc' },
+    { xpath: 'cfdi:Receptor/@Nombre', local: 'Nombre Receptor', english: 'Receiver Name', required: true, isAttr: true, parentTag: 'cfdi:Receptor', attrName: 'Nombre' },
+    { xpath: 'cfdi:Receptor/@DomicilioFiscalReceptor', local: 'CP Receptor', english: 'Receiver Zip Code', required: true, isAttr: true, parentTag: 'cfdi:Receptor', attrName: 'DomicilioFiscalReceptor' },
+    { xpath: 'cfdi:Receptor/@RegimenFiscalReceptor', local: 'Régimen Fiscal Receptor', english: 'Receiver Tax Regime', required: true, isAttr: true, parentTag: 'cfdi:Receptor', attrName: 'RegimenFiscalReceptor' },
+    { xpath: 'cfdi:Receptor/@UsoCFDI', local: 'Uso de CFDI', english: 'CFDI Use Code', required: true, isAttr: true, parentTag: 'cfdi:Receptor', attrName: 'UsoCFDI' },
+  ],
+  lineFields: [],
+  linesParent: null, lineTag: 'cfdi:Concepto',
+  validate: (doc, fields) => {
+    const checks = [];
+    const root = doc.getElementsByTagName('cfdi:Comprobante')[0];
+    if (!root) return checks;
+    const version = root.getAttribute('Version');
+    if (version === '4.0') { checks.push(check('pass', 'CFDI version 4.0 confirmed')); }
+    else { checks.push(check('fail', `CFDI version ${version || 'missing'} — version 4.0 is required`)); }
+    // UUID check
+    const timbre = doc.getElementsByTagName('tfd:TimbreFiscalDigital')[0];
+    if (timbre) {
+      const uuid = timbre.getAttribute('UUID');
+      if (uuid && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid)) {
+        checks.push(check('pass', `SAT UUID (Fiscal Stamp): ${uuid}`));
+      } else { checks.push(check('fail', 'UUID format invalid or missing in TimbreFiscalDigital')); }
+    } else { checks.push(check('warn', 'No TimbreFiscalDigital found — invoice may not be stamped by SAT')); }
+    // RFC format
+    const rfcEmisor = root.querySelector('[*|Emisor]')?.getAttribute('Rfc') || (doc.getElementsByTagName('cfdi:Emisor')[0]?.getAttribute('Rfc'));
+    if (rfcEmisor) {
+      if (rfcEmisor.length >= 12 && rfcEmisor.length <= 13) { checks.push(check('pass', `Sender RFC format valid: ${rfcEmisor}`)); }
+      else { checks.push(check('fail', `Sender RFC length invalid: ${rfcEmisor.length} chars (expected 12-13)`)); }
+    }
+    // Name uppercase check
+    const nombreEmisor = doc.getElementsByTagName('cfdi:Emisor')[0]?.getAttribute('Nombre');
+    if (nombreEmisor && nombreEmisor !== nombreEmisor.toUpperCase()) {
+      checks.push(check('warn', 'Sender name should be uppercase per CFDI 4.0 rules', `Found: ${nombreEmisor}`));
+    }
+    return checks;
+  }
+},
+
+// ── ROMANIA CIUS-RO ──
+romania: {
+  name: 'Romania', flag: '🇷🇴', format: 'CIUS-RO (UBL 2.1)', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('efactura.mfinante.ro') || str.includes('CIUS-RO'),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Invoice Header' },
+    { xpath: 'cbc:ID', local: 'Număr factură', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'Data emiterii', english: 'Issue Date', required: true },
+    { xpath: 'cbc:DueDate', local: 'Data scadenței', english: 'Due Date', required: false },
+    { xpath: 'cbc:InvoiceTypeCode', local: 'Tip factură', english: 'Invoice Type Code', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'Monedă', english: 'Currency', required: true },
+    { xpath: 'cbc:BuyerReference', local: 'Referință cumpărător', english: 'Buyer Reference', required: false },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'Nume / Denumire (Furnizor)', english: 'Supplier Legal Name', required: true },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'CIF / CUI', english: 'Supplier Tax ID (CIF)', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyName/cbc:Name', local: 'Nume / Denumire (Client)', english: 'Customer Legal Name', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'CIF / CUI (Client)', english: 'Customer Tax ID (CIF)', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount', local: 'Valoare netă totală', english: 'Sum of Lines (Excl. VAT)', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', local: 'Valoare totală cu TVA', english: 'Gross Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'Total de plată', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: (doc) => {
+    const checks = [];
+    const cif = findValNS(doc, 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID');
+    if (cif && cif.startsWith('RO')) { checks.push(check('pass', `Romanian CIF prefix detected: ${cif}`)); }
+    else if (cif) { checks.push(check('warn', `Supplier Tax ID missing RO prefix: ${cif}`)); }
+    return checks;
+  }
+},
+
+// ── SERBIA SEF ──
+serbia: {
+  name: 'Serbia', flag: '🇷🇸', format: 'SEF UBL 2.1', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('mfin.gov.rs') || str.includes('9948'),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Document Header' },
+    { xpath: 'cbc:ID', local: 'Broj fakture', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'Datum izdavanja', english: 'Issue Date', required: true },
+    { xpath: 'cbc:DueDate', local: 'Datum dospelosti', english: 'Due Date', required: true },
+    { xpath: 'cbc:InvoiceTypeCode', local: 'Tip dokumenta', english: 'Invoice Type', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'Valuta', english: 'Currency', required: true },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName', local: 'Naziv prodavca', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName', local: 'Naziv kupca', english: 'Customer Name', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount', local: 'Iznos bez poreza', english: 'Net Amount', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', local: 'Iznos sa porezom', english: 'Gross Amount', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'Iznos za uplatu', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: () => []
+},
+
+// ── GERMANY X-Rechnung ──
+germany: {
+  name: 'Germany', flag: '🇩🇪', format: 'X-Rechnung (UBL)', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('xrechnung') || (str.includes('urn:cen.eu:en16931') && str.includes('DE')),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Header' },
+    { xpath: 'cbc:ID', local: 'Rechnungsnummer', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'Rechnungsdatum', english: 'Invoice Date', required: true },
+    { xpath: 'cbc:InvoiceTypeCode', local: 'Rechnungsart', english: 'Invoice Type Code', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'Währung', english: 'Currency', required: true },
+    { xpath: 'cbc:BuyerReference', local: 'Leitweg-ID', english: 'Buyer Reference / Leitweg-ID', required: true },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'Verkäufername', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'USt-IdNr. Verkäufer', english: 'Supplier VAT ID', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyName/cbc:Name', local: 'Käufername', english: 'Customer Name', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount', local: 'Nettobetrag', english: 'Net Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', local: 'Bruttobetrag', english: 'Gross Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'Zahlbetrag', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: () => []
+},
+
+// ── NORWAY EHF ──
+norway: {
+  name: 'Norway', flag: '🇳🇴', format: 'EHF (UBL)', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('ehf') || str.includes('MVA'),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Header' },
+    { xpath: 'cbc:ID', local: 'Fakturanummer', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'Fakturadato', english: 'Invoice Date', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'Valuta', english: 'Currency', required: true },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'Leverandørnavn', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID', local: 'Organisasjonsnr.', english: 'Buyer Tax Number', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'Beløp å betale', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: () => []
+},
+
+// ── DENMARK OIOUBL ──
+denmark: {
+  name: 'Denmark', flag: '🇩🇰', format: 'OIOUBL', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('OIOUBL') || str.includes('oioubl'),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Header' },
+    { xpath: 'cbc:ID', local: 'Fakturanummer', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'Fakturadato', english: 'Invoice Date', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'Valuta', english: 'Currency', required: true },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'Leverandørnavn', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyIdentification/cbc:ID', local: 'CVR-nummer', english: 'Buyer Tax Number', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'Betalingsbeløb', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: () => []
+},
+
+// ── GLOBAL PEPPOL BIS 3.0 ──
+peppol: {
+  name: 'Global', flag: '🌐', format: 'PEPPOL BIS 3.0', rootTag: 'Invoice',
+  detect: (xml, str) => str.includes('peppol') || str.includes('urn:cen.eu:en16931'),
+  ns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+  fields: [
+    { section: 'Header' },
+    { xpath: 'cbc:ID', local: 'cbc:ID', english: 'Invoice Number', required: true },
+    { xpath: 'cbc:IssueDate', local: 'cbc:IssueDate', english: 'Issue Date', required: true },
+    { xpath: 'cbc:InvoiceTypeCode', local: 'cbc:InvoiceTypeCode', english: 'Invoice Type', required: true },
+    { xpath: 'cbc:DocumentCurrencyCode', local: 'cbc:DocumentCurrencyCode', english: 'Currency', required: true },
+    { section: 'Parties' },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyName/cbc:Name', local: 'SupplierPartyName', english: 'Supplier Name', required: true },
+    { xpath: 'cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', local: 'SupplierVAT', english: 'Supplier VAT ID', required: true },
+    { xpath: 'cac:AccountingCustomerParty/cac:Party/cac:PartyName/cbc:Name', local: 'CustomerPartyName', english: 'Customer Name', required: true },
+    { section: 'Financial Totals' },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount', local: 'LineExtensionAmount', english: 'Net Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount', local: 'TaxInclusiveAmount', english: 'Gross Total', required: true },
+    { xpath: 'cac:LegalMonetaryTotal/cbc:PayableAmount', local: 'PayableAmount', english: 'Payable Amount', required: true },
+  ],
+  lineFields: [], linesParent: null, lineTag: 'cac:InvoiceLine',
+  validate: () => []
+}
+
+}; // end COUNTRY_SPECS
+
+// ── HELPER: Find value in non-namespaced XML (Poland) ──
+function findVal(doc, path) {
+  const parts = path.split('/');
+  let node = doc.documentElement;
+  for (const p of parts) {
+    if (!node) return null;
+    const children = node.children;
+    let found = null;
+    for (let i = 0; i < children.length; i++) {
+      if (children[i].localName === p || children[i].tagName === p) { found = children[i]; break; }
+    }
+    node = found;
+  }
+  return node ? (node.textContent || '').trim() : null;
+}
+
+// ── HELPER: Find value in namespaced UBL XML ──
+function findValNS(doc, path) {
+  const parts = path.split('/');
+  let node = doc.documentElement;
+  for (const p of parts) {
+    if (!node) return null;
+    const localName = p.includes(':') ? p.split(':')[1] : p;
+    const children = node.children;
+    let found = null;
+    for (let i = 0; i < children.length; i++) {
+      if (children[i].localName === localName) { found = children[i]; break; }
+    }
+    node = found;
+  }
+  return node ? (node.textContent || '').trim() : null;
+}
+
+// ── AUTO-DETECT COUNTRY ──
+function detectCountry(xmlString) {
+  // Check in priority order (most specific first)
+  if (COUNTRY_SPECS.mexico.detect(null, xmlString)) return 'mexico';
+  if (COUNTRY_SPECS.poland.detect(null, xmlString)) return 'poland';
+  if (COUNTRY_SPECS.romania.detect(null, xmlString)) return 'romania';
+  if (COUNTRY_SPECS.serbia.detect(null, xmlString)) return 'serbia';
+  if (COUNTRY_SPECS.belgium.detect(null, xmlString)) return 'belgium';
+  if (COUNTRY_SPECS.germany.detect(null, xmlString)) return 'germany';
+  if (COUNTRY_SPECS.norway.detect(null, xmlString)) return 'norway';
+  if (COUNTRY_SPECS.denmark.detect(null, xmlString)) return 'denmark';
+  if (COUNTRY_SPECS.peppol.detect(null, xmlString)) return 'peppol';
+  return null;
+}
+
+// ── EXTRACT FIELD VALUE ──
+function extractFieldValue(doc, field, spec) {
+  if (field.section) return null;
+
+  // Mexico: attributes on root or child elements
+  if (field.isAttr) {
+    if (field.parentTag) {
+      const parent = doc.getElementsByTagName(field.parentTag)[0];
+      return parent ? (parent.getAttribute(field.attrName) || null) : null;
+    }
+    const root = doc.documentElement;
+    return root ? (root.getAttribute(field.attrName) || null) : null;
+  }
+
+  // Poland: non-namespaced
+  if (!spec.ns || spec.name === 'Poland') {
+    return findVal(doc, field.xpath);
+  }
+
+  // UBL namespaced (Belgium, Romania, Serbia, etc.)
+  return findValNS(doc, field.xpath);
+}
+
+// ── MAIN REGIONAL ANALYSIS ──
+function analyzeRegional(xmlString, countryKey) {
+  const result = { country: null, spec: null, detected: null, meta: {}, translation: [], checks: [], lineTranslation: [] };
+
+  // Parse XML
+  let doc;
+  try {
+    const parser = new DOMParser();
+    doc = parser.parseFromString(xmlString, 'application/xml');
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      result.checks.push(check('fail', 'XML is not well-formed', parseError.textContent.substring(0, 200)));
+      return result;
+    }
+    result.checks.push(check('pass', 'XML is well-formed'));
+  } catch (e) {
+    result.checks.push(check('fail', 'XML parsing failed', e.message));
+    return result;
+  }
+
+  // Detect or use selected country
+  let detectedKey = detectCountry(xmlString);
+  let activeKey = countryKey === 'auto' ? detectedKey : countryKey;
+
+  if (!activeKey) {
+    result.checks.push(check('fail', 'Could not auto-detect invoice format. Please select a country manually.'));
+    return result;
+  }
+
+  const spec = COUNTRY_SPECS[activeKey];
+  result.country = activeKey;
+  result.spec = spec;
+  result.detected = detectedKey;
+
+  if (countryKey === 'auto' && detectedKey) {
+    result.checks.push(check('pass', `Auto-detected format: ${spec.flag} ${spec.name} — ${spec.format}`));
+  }
+
+  // Extract header fields
+  let requiredCount = 0, requiredPresent = 0;
+  for (const field of spec.fields) {
+    if (field.section) {
+      result.translation.push({ section: field.section });
+      continue;
+    }
+    const value = extractFieldValue(doc, field, spec);
+    const status = value ? 'present' : (field.required ? 'missing' : 'optional');
+    result.translation.push({ local: field.local, english: field.english, value: value || '—', status, required: field.required });
+
+    if (field.required) {
+      requiredCount++;
+      if (value) { requiredPresent++; result.checks.push(check('pass', `${field.english}: present`)); }
+      else { result.checks.push(check('fail', `${field.english}: MISSING (required)`)); }
+    }
+  }
+
+  // Meta extraction
+  result.meta = {
+    format: `${spec.flag} ${spec.name} — ${spec.format}`,
+    requiredFields: `${requiredPresent}/${requiredCount}`,
+  };
+
+  // Extract line items
+  const lineElements = doc.getElementsByTagName(spec.lineTag.includes(':') ? spec.lineTag.split(':')[1] : spec.lineTag);
+  if (lineElements.length > 0) {
+    result.checks.push(check('pass', `${lineElements.length} line item(s) found`));
+    result.meta.lines = lineElements.length;
+
+    // Extract first few lines for display
+    if (spec.lineFields && spec.lineFields.length > 0) {
+      for (let i = 0; i < Math.min(lineElements.length, 20); i++) {
+        const lineEl = lineElements[i];
+        const lineData = { lineNum: i + 1, fields: [] };
+        for (const lf of spec.lineFields) {
+          const localName = lf.xpath.includes(':') ? lf.xpath.split(':')[1] : lf.xpath;
+          let val = null;
+          // Search in children
+          const search = (el, name) => {
+            for (let c = 0; c < el.children.length; c++) {
+              if (el.children[c].localName === name) return (el.children[c].textContent || '').trim();
+              const deep = search(el.children[c], name);
+              if (deep) return deep;
+            }
+            return null;
+          };
+          val = search(lineEl, localName);
+          lineData.fields.push({ local: lf.local, english: lf.english, value: val || '—' });
+        }
+        result.lineTranslation.push(lineData);
+      }
+    }
+  } else {
+    result.checks.push(check('info', 'No line items found or line tag not matched'));
+  }
+
+  // Run country-specific validation
+  if (spec.validate) {
+    const countryChecks = spec.validate(doc, result.translation);
+    result.checks.push(...countryChecks);
+  }
+
+  // Math reconciliation for UBL types
+  if (spec.ns) {
+    const netTotal = parseFloat(findValNS(doc, 'cac:LegalMonetaryTotal/cbc:LineExtensionAmount'));
+    const grossTotal = parseFloat(findValNS(doc, 'cac:LegalMonetaryTotal/cbc:TaxInclusiveAmount'));
+    const taxTotal = parseFloat(findValNS(doc, 'cac:TaxTotal/cbc:TaxAmount'));
+    if (!isNaN(netTotal) && !isNaN(grossTotal) && !isNaN(taxTotal)) {
+      const expected = Math.round((netTotal + taxTotal) * 100) / 100;
+      const actual = Math.round(grossTotal * 100) / 100;
+      if (Math.abs(expected - actual) < 0.02) { result.checks.push(check('pass', `Math verified: Net (${netTotal}) + Tax (${taxTotal}) = Gross (${actual})`)); }
+      else { result.checks.push(check('warn', `Math discrepancy: Net (${netTotal}) + Tax (${taxTotal}) = ${expected}, but Gross is ${actual}`)); }
+    }
+  }
+
+  return result;
+}
+
+// ── RENDER REGIONAL RESULTS ──
+function renderRegionalResults(data) {
+  const resultsDiv = document.getElementById('rcResults');
+  resultsDiv.classList.add('visible');
+
+  // Detected format
+  const detDiv = document.getElementById('rcDetected');
+  if (data.spec) {
+    detDiv.innerHTML = `<span class="det-icon">${data.spec.flag}</span><div class="det-text"><strong>${data.spec.name} — ${data.spec.format}</strong>${data.detected && data.country === data.detected ? ' (auto-detected)' : ''}</div><span class="country-pill"><span class="flag">${data.spec.flag}</span>${data.spec.name}</span>`;
+  } else {
+    detDiv.innerHTML = `<span class="det-icon">❓</span><div class="det-text">Format not detected</div>`;
+  }
+
+  // Counts
+  let passes = 0, fails = 0, warns = 0, infos = 0;
+  data.checks.forEach(c => { if (c.status === 'pass') passes++; else if (c.status === 'fail') fails++; else if (c.status === 'warn') warns++; else infos++; });
+
+  // Verdict
+  const banner = document.getElementById('rcVerdictBanner');
+  const isPass = fails === 0;
+  banner.className = `results-header ${isPass ? 'pass' : 'fail'}`;
+  banner.innerHTML = `<span class="verdict-icon">${isPass ? '✅' : '❌'}</span><span class="verdict-text">${isPass ? 'Compliance Checks Passed' : 'Compliance Issues Found'}</span><span class="verdict-detail">${data.checks.length} checks · ${data.translation.filter(t => !t.section).length} fields mapped</span>`;
+
+  // Meta
+  const metaDiv = document.getElementById('rcMeta');
+  const metaFields = [['Format', data.meta.format],['Required Fields', data.meta.requiredFields],['Line Items', data.meta.lines]].filter(f => f[1]);
+  metaDiv.innerHTML = metaFields.map(([label, value]) => `<div class="meta-item"><div class="meta-label">${label}</div><div class="meta-value">${value || '—'}</div></div>`).join('');
+
+  // Stats
+  document.getElementById('rcStatsBar').innerHTML = `<div class="stat-card pass-card"><div class="stat-num">${passes}</div><div class="stat-label">Passed</div></div><div class="stat-card fail-card"><div class="stat-num">${fails}</div><div class="stat-label">Failed</div></div><div class="stat-card warn-card"><div class="stat-num">${warns}</div><div class="stat-label">Warnings</div></div><div class="stat-card info-card"><div class="stat-num">${infos}</div><div class="stat-label">Info</div></div>`;
+
+  // Translation table
+  const transDiv = document.getElementById('rcTranslationSection');
+  let tableHTML = `<table class="rc-translation-table"><thead><tr><th>Local Field Name</th><th>English Translation</th><th>Value</th><th class="col-status">Status</th></tr></thead><tbody>`;
+  for (const row of data.translation) {
+    if (row.section) {
+      tableHTML += `<tr class="section-row"><td colspan="4">${row.section}</td></tr>`;
+    } else {
+      const statusBadge = row.status === 'present' ? '<span class="status-badge present">present</span>' :
+                          row.status === 'missing' ? '<span class="status-badge missing">missing</span>' :
+                          '<span class="status-badge optional">optional</span>';
+      tableHTML += `<tr><td class="col-local">${row.local}</td><td class="col-english">${row.english}</td><td class="col-value">${escHTML(row.value)}</td><td class="col-status">${statusBadge}</td></tr>`;
+    }
+  }
+  tableHTML += '</tbody></table>';
+
+  // Line items table
+  if (data.lineTranslation.length > 0) {
+    const lineCols = data.lineTranslation[0].fields;
+    tableHTML += `<h3 style="font-size:0.92rem;font-weight:600;margin:1.5rem 0 0.8rem;color:var(--text-dim)">Line Items (${data.lineTranslation.length})</h3>`;
+    tableHTML += `<table class="rc-translation-table"><thead><tr><th>#</th>`;
+    lineCols.forEach(f => { tableHTML += `<th>${f.english}</th>`; });
+    tableHTML += `</tr></thead><tbody>`;
+    data.lineTranslation.forEach(line => {
+      tableHTML += `<tr><td class="col-value">${line.lineNum}</td>`;
+      line.fields.forEach(f => { tableHTML += `<td class="col-value">${escHTML(f.value)}</td>`; });
+      tableHTML += `</tr>`;
+    });
+    tableHTML += '</tbody></table>';
+  }
+
+  transDiv.innerHTML = tableHTML;
+
+  // Check groups
+  const groupsDiv = document.getElementById('rcCheckGroups');
+  const complianceGroup = { title: 'Compliance Validation', icon: '🔍', checks: data.checks };
+  const groupFails = complianceGroup.checks.filter(c => c.status === 'fail').length;
+  const groupWarns = complianceGroup.checks.filter(c => c.status === 'warn').length;
+  const badgeClass = groupFails > 0 ? 'has-fail' : groupWarns > 0 ? 'has-warn' : 'all-pass';
+  const badgeText = groupFails > 0 ? `${groupFails} fail` : groupWarns > 0 ? `${groupWarns} warn` : 'all pass';
+
+  groupsDiv.innerHTML = `<div class="check-group open"><div class="check-group-header" onclick="this.parentElement.classList.toggle('open')"><span class="group-icon">🔍</span><span class="group-title">Compliance Validation</span><span class="group-badge ${badgeClass}">${badgeText}</span><span class="chevron">▼</span></div><div class="check-group-body">${complianceGroup.checks.map(c => { const icons = { pass: '✓', fail: '✗', warn: '⚠', info: 'ℹ' }; return `<div class="check-item"><span class="check-icon ${c.status}">${icons[c.status]}</span><div class="check-msg"><div class="check-label">${c.label}</div>${c.detail ? `<div class="check-detail">${c.detail}</div>` : ''}</div></div>`; }).join('')}</div></div>`;
+
+  resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escHTML(s) {
+  if (!s) return '';
+  const str = String(s);
+  if (str.length > 120) return str.substring(0, 117).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '…';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+// ═══════════════════════════════════════
+// SAMPLE REGIONAL XML
+// ═══════════════════════════════════════
+
+const RC_SAMPLES = {
+  poland: `<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-03-15T10:30:00Z</DataWytworzeniaFa>
+  </Naglowek>
+  <Podmiot1>
+    <DaneIdentyfikacyjne>
+      <NIP>5261040828</NIP>
+      <PelnaNazwa>ACME POLSKA SP. Z O.O.</PelnaNazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <Miejscowosc>Warszawa</Miejscowosc>
+    </Adres>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>1234563218</NIP>
+      <PelnaNazwa>KLIENT TESTOWY SP. Z O.O.</PelnaNazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <Miejscowosc>Kraków</Miejscowosc>
+    </Adres>
+  </Podmiot2>
+  <Fa>
+    <P_1>2026-03-15</P_1>
+    <P_2>FV/2026/03/001</P_2>
+    <P_6>2026-03-14</P_6>
+    <KodWaluty>PLN</KodWaluty>
+    <P_13_1>1000.00</P_13_1>
+    <P_14_1>230.00</P_14_1>
+    <P_15>1230.00</P_15>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Usługi konsultingowe IT</P_7>
+      <P_8A>10</P_8A>
+      <P_8B>szt</P_8B>
+      <P_9A>100.00</P_9A>
+      <P_11>1000.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+  </Fa>
+</Faktura>`,
+
+  belgium: `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+  <cbc:ID>BE-INV-2026-0042</cbc:ID>
+  <cbc:IssueDate>2026-03-20</cbc:IssueDate>
+  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <cbc:BuyerReference>PO-9988</cbc:BuyerReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyIdentification><cbc:ID schemeID="0208">0123456789</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name>Leverancier NV</cbc:Name></cac:PartyName>
+      <cac:PartyTaxScheme><cbc:CompanyID>BE0123456789</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>Klant BVBA</cbc:Name></cac:PartyName>
+      <cac:PartyTaxScheme><cbc:CompanyID>BE0987654321</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
+    <cbc:PaymentID>+++000/0001/12344+++</cbc:PaymentID>
+  </cac:PaymentMeans>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="EUR">1000.00</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount>
+      <cac:TaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>21</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="EUR">1000.00</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="EUR">1000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="EUR">1210.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="EUR">1210.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="EA">5</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">1000.00</cbc:LineExtensionAmount>
+    <cac:Item><cbc:Name>Consulting Services</cbc:Name></cac:Item>
+    <cac:Price><cbc:PriceAmount currencyID="EUR">200.00</cbc:PriceAmount></cac:Price>
+  </cac:InvoiceLine>
+</Invoice>`,
+
+  mexico: `<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+                  xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+                  Version="4.0" Serie="A" Folio="12345"
+                  Fecha="2026-03-10T12:00:00"
+                  Sello="abc123SelloDigital..."
+                  FormaPago="01" MetodoPago="PUE"
+                  Moneda="MXN" TipoDeComprobante="I"
+                  LugarExpedicion="06600" Exportacion="01"
+                  SubTotal="5000.00" Total="5800.00">
+  <cfdi:Emisor Rfc="XAXX010101000" Nombre="EMPRESA DEMO SA DE CV" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="CACX7605101P8" Nombre="CLIENTE PRUEBA" DomicilioFiscalReceptor="44100" RegimenFiscalReceptor="616" UsoCFDI="G03"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="84111506" NoIdentificacion="SERV-001" Cantidad="1" ClaveUnidad="E48" Descripcion="Servicio de consultoría" ValorUnitario="5000.00" Importe="5000.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="5000.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="800.00"/>
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="800.00">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="5000.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="800.00"/>
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="550e8400-e29b-41d4-a716-446655440000" SelloSAT="selloSATvalue..."/>
+  </cfdi:Complemento>
+</cfdi:Comprobante>`
+};
+
+
+// ═══════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════
+
+// ── Tab switching ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ── Phase 1 handlers ──
+let currentData = null;
+
+document.getElementById('validateBtn').addEventListener('click', () => {
+  const xmlText = document.getElementById('pasteArea').value.trim();
+  if (!xmlText) { alert('Please paste or upload a cXML file first.'); return; }
+  currentData = validateCXML(xmlText);
+  renderResults(currentData);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('results').classList.remove('visible');
+  currentData = null;
+});
+
+document.getElementById('loadSampleBtn').addEventListener('click', () => {
+  document.getElementById('pasteArea').value = SAMPLE_XML;
+});
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) { const reader = new FileReader(); reader.onload = (ev) => { document.getElementById('pasteArea').value = ev.target.result; }; reader.readAsText(file); }
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) { const reader = new FileReader(); reader.onload = (ev) => { document.getElementById('pasteArea').value = ev.target.result; }; reader.readAsText(file); }
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!currentData) return;
+  const report = generateReport(currentData);
+  const blob = new Blob([report], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cxml-validation-${currentData.meta.invoiceID || 'report'}-${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ── Phase 2 handlers ──
+let rcCurrentData = null;
+
+document.getElementById('rcValidateBtn').addEventListener('click', () => {
+  const xmlText = document.getElementById('rcPasteArea').value.trim();
+  if (!xmlText) { alert('Please paste or upload a regional invoice XML first.'); return; }
+  const countryKey = document.getElementById('rcCountrySelect').value;
+  rcCurrentData = analyzeRegional(xmlText, countryKey);
+  renderRegionalResults(rcCurrentData);
+});
+
+document.getElementById('rcClearBtn').addEventListener('click', () => {
+  document.getElementById('rcPasteArea').value = '';
+  document.getElementById('rcResults').classList.remove('visible');
+  rcCurrentData = null;
+});
+
+document.getElementById('rcLoadSampleBtn').addEventListener('click', () => {
+  const countryKey = document.getElementById('rcCountrySelect').value;
+  const sampleKey = countryKey === 'auto' ? 'poland' : countryKey;
+  const sample = RC_SAMPLES[sampleKey];
+  if (sample) {
+    document.getElementById('rcPasteArea').value = sample;
+    if (countryKey === 'auto') { document.getElementById('rcCountrySelect').value = 'auto'; }
+  } else {
+    alert(`No sample available for ${sampleKey}. Samples are available for Poland, Belgium, and Mexico.`);
+  }
+});
+
+document.getElementById('rcFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) { const reader = new FileReader(); reader.onload = (ev) => { document.getElementById('rcPasteArea').value = ev.target.result; }; reader.readAsText(file); }
+});
+
+const rcDropZone = document.getElementById('rcDropZone');
+rcDropZone.addEventListener('dragover', (e) => { e.preventDefault(); rcDropZone.classList.add('dragover'); });
+rcDropZone.addEventListener('dragleave', () => rcDropZone.classList.remove('dragover'));
+rcDropZone.addEventListener('drop', (e) => {
+  e.preventDefault(); rcDropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) { const reader = new FileReader(); reader.onload = (ev) => { document.getElementById('rcPasteArea').value = ev.target.result; }; reader.readAsText(file); }
+});
+
+document.getElementById('rcExportBtn').addEventListener('click', () => {
+  if (!rcCurrentData) return;
+  let report = '═══════════════════════════════════════\n  REGIONAL COMPLIANCE REPORT\n';
+  report += `  Generated: ${new Date().toISOString()}\n═══════════════════════════════════════\n\n`;
+  if (rcCurrentData.spec) { report += `Format: ${rcCurrentData.spec.flag} ${rcCurrentData.spec.name} — ${rcCurrentData.spec.format}\n\n`; }
+  report += `── Field Translation ${'─'.repeat(20)}──\n`;
+  report += 'Local Field'.padEnd(35) + 'English'.padEnd(30) + 'Value\n';
+  report += '─'.repeat(95) + '\n';
+  rcCurrentData.translation.forEach(row => {
+    if (row.section) { report += `\n[${row.section}]\n`; }
+    else { report += `${row.local.padEnd(35)}${row.english.padEnd(30)}${row.value}\n`; }
+  });
+  report += '\n── Compliance Checks ──\n';
+  rcCurrentData.checks.forEach(c => {
+    const icon = { pass: '[PASS]', fail: '[FAIL]', warn: '[WARN]', info: '[INFO]' }[c.status];
+    report += `  ${icon} ${c.label}`; if (c.detail) report += ` — ${c.detail}`; report += '\n';
+  });
+  const blob = new Blob([report], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `regional-compliance-${rcCurrentData.country || 'report'}-${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
