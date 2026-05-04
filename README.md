@@ -7,7 +7,7 @@ A browser-based tool for procurement and AP integration teams. It does two thing
 
 **Early draft / work in progress.** The cXML side is functional but rule coverage is still growing. The regional compliance side covers 8 countries with more planned.
 
-**[Live demo](https://YOUR-USERNAME.github.io/coupa-cxml-validator/)**
+**[Live demo](https://Kwasley18.github.io/coupa-cxml-validator/)**
 
 ## Coupa cXML validator
 
